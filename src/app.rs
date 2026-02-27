@@ -74,6 +74,7 @@ impl WavForgeApp {
 
     /// Sends a Play command to the audio engine with the current samples.
     fn play(&mut self) {
+        log::info!("File: {} Hz, {} ch", self.sample_rate, self.channels);
         let Some(samples) = &self.samples else { return };
         let cmd = EngineCommand::Play {
             samples: samples.clone(),

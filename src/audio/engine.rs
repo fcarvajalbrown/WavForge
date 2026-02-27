@@ -22,6 +22,7 @@ use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{Device, OutputCallbackInfo, SampleFormat, Stream, StreamConfig};
 use crossbeam_channel::{Receiver, Sender, TryRecvError};
 use std::sync::Arc;
+use rubato::{Resampler, SincFixedIn, SincInterpolationParameters, SincInterpolationType, WindowFunction};
 
 /// Commands the UI thread sends to the audio engine.
 pub enum EngineCommand {
@@ -152,6 +153,7 @@ where
 {
     let mut state = PlaybackState::empty();
     let channels = config.channels as usize;
+    let device_sample_rate = config.sample_rate.0;
 
     let stream = device
         .build_output_stream(
@@ -162,8 +164,9 @@ where
                 // Drain all pending commands non-blockingly
                 loop {
                     match rx.try_recv() {
-                        Ok(EngineCommand::Play { samples, .. }) => {
-                            state.samples = Arc::from(samples.into_boxed_slice());
+                        Ok(EngineCommand::Play { samples, sample_rate, channels: src_channels }) => {
+                            let resampled = resample(&samples, src_channels, sample_rate, device_sample_rate);
+                            state.samples = Arc::from(resampled.into_boxed_slice());
                             state.cursor = 0;
                             state.playing = true;
                         }
@@ -206,4 +209,51 @@ where
         .map_err(|e| format!("Failed to build output stream: {e}"))?;
 
     Ok(stream)
+}
+
+/// Resamples interleaved f32 PCM from `in_rate` to `out_rate`.
+/// Returns the resampled interleaved samples.
+fn resample(samples: &[f32], channels: usize, in_rate: u32, out_rate: u32) -> Vec<f32> {
+    if in_rate == out_rate {
+        return samples.to_vec();
+    }
+
+    let ratio = out_rate as f64 / in_rate as f64;
+
+    // De-interleave into per-channel Vecs
+    let mut channel_bufs: Vec<Vec<f32>> = vec![Vec::new(); channels];
+    for (i, &s) in samples.iter().enumerate() {
+        channel_bufs[i % channels].push(s);
+    }
+
+    let params = SincInterpolationParameters {
+        sinc_len: 256,
+        f_cutoff: 0.95,
+        interpolation: SincInterpolationType::Linear,
+        oversampling_factor: 256,
+        window: WindowFunction::BlackmanHarris2,
+    };
+
+    let mut resampler = SincFixedIn::<f32>::new(
+        ratio,
+        2.0,
+        params,
+        channel_bufs[0].len(),
+        channels,
+    )
+    .expect("Failed to create resampler");
+
+    let resampled = resampler
+        .process(&channel_bufs.iter().map(|c| c.as_slice()).collect::<Vec<_>>(), None)
+        .expect("Resampling failed");
+
+    // Re-interleave
+    let frame_count = resampled[0].len();
+    let mut out = Vec::with_capacity(frame_count * channels);
+    for i in 0..frame_count {
+        for ch in &resampled {
+            out.push(ch[i]);
+        }
+    }
+    out
 }

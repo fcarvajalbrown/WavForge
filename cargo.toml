@@ -9,16 +9,19 @@ name = "wavforge"
 path = "src/main.rs"
 
 [dependencies]
-env_logger = "0.11"
+rfd = "0.17.2"
+env_logger = "0.11.9"
 # UI + app shell
-eframe = "0.29"
-egui = "0.29"
+eframe = "0.33.3"
+egui = "0.33.3"
+log = "0.4.29"
+rubato = "1.0.1"
 
 # Audio I/O (playback/recording)
-cpal = "0.15"
+cpal = "0.17.3"
 
 # Audio decoding (MP3, FLAC, OGG, WAV, AIFF)
-symphonia = { version = "0.5", features = [
+symphonia = { version = "0.5.5", features = [
     "mp3",
     "flac",
     "ogg",
@@ -28,7 +31,7 @@ symphonia = { version = "0.5", features = [
 ] }
 
 # Thread-safe communication between audio thread and UI thread
-crossbeam-channel = "0.5"
+crossbeam-channel = "0.5.15"
 
 [profile.release]
 opt-level = 3

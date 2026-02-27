@@ -7,7 +7,7 @@
 //! Supported formats: WAV, MP3, FLAC, OGG/Vorbis, AIFF.
 
 use std::path::Path;
-use symphonia::core::audio::{AudioBufferRef, Signal};
+use symphonia::core::audio::AudioBufferRef;
 use symphonia::core::codecs::DecoderOptions;
 use symphonia::core::errors::Error as SymphoniaError;
 use symphonia::core::formats::FormatOptions;
