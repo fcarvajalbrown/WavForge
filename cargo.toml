@@ -1,0 +1,38 @@
+[package]
+name = "wavforge"
+version = "0.1.0"
+edition = "2021"
+description = "A lightweight, clean audio editor"
+
+[[bin]]
+name = "wavforge"
+path = "src/main.rs"
+
+[dependencies]
+# UI + app shell
+eframe = "0.29"
+egui = "0.29"
+
+# Audio I/O (playback/recording)
+cpal = "0.15"
+
+# Audio decoding (MP3, FLAC, OGG, WAV, AIFF)
+symphonia = { version = "0.5", features = [
+    "mp3",
+    "flac",
+    "ogg",
+    "vorbis",
+    "wav",
+    "aiff",
+] }
+
+# Thread-safe communication between audio thread and UI thread
+crossbeam-channel = "0.5"
+
+[profile.release]
+opt-level = 3
+strip = true
+
+# Keep debug info in dev builds for easier profiling
+[profile.dev]
+opt-level = 1
