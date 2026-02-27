@@ -9,6 +9,7 @@ name = "wavforge"
 path = "src/main.rs"
 
 [dependencies]
+env_logger = "0.11"
 # UI + app shell
 eframe = "0.29"
 egui = "0.29"
